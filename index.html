@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="icon" href="logo.png">
+<style>:root{color-scheme:light}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>シナ分け</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap">
+<style>
+/* 作業台:上部に固定バー(タブ・保存)、下に左入力/右一覧の2カラム。狭い画面では縦積み */
+:root{
+  --bg:#f2f0ee; --panel:#fbfaf9; --fg:#231e1b; --muted:#6b625c; --rule:#dcd6d1;
+  --accent:#4a3226; --accent-ink:#fbfaf9;
+  --body:system-ui,"Hiragino Sans","Yu Gothic UI","Meiryo",sans-serif;
+  --text-size:15px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1a1716;--panel:#221e1c;--fg:#ebe6e2;--muted:#a59b94;--rule:#3a3330;--accent:#c4a690;--accent-ink:#1a1716;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#1a1716;--panel:#221e1c;--fg:#ebe6e2;--muted:#a59b94;--rule:#3a3330;--accent:#c4a690;--accent-ink:#1a1716;color-scheme:dark}
+:root[data-font="ud"]{--body:"BIZ UDPGothic","Hiragino Sans","Yu Gothic",sans-serif}
+:root[data-size="large"]{--text-size:17px}
+
+body{background:var(--bg);color:var(--fg);font-family:var(--body);line-height:1.7;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--panel)}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:16px}
+
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--panel);border-bottom:1px solid var(--rule);margin:0 calc(-1 * max(16px,env(safe-area-inset-left,0px)));padding:10px max(16px,env(safe-area-inset-left,0px)) 0;display:grid;gap:8px}
+.top-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px}
+h1{font-weight:700;font-size:21px;margin:0;display:flex;align-items:center;gap:10px}
+.logo{display:block;width:44px;height:44px;flex:none}
+h1 small{font-size:13px;font-weight:700;color:var(--muted)}
+.view{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted)}
+.view select{width:auto;padding:4px 6px}
+.save{margin-left:auto;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+#zipName{width:15em;padding:6px 8px}
+.count{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.tabs{display:flex;gap:4px}
+.top:has(.tabs[hidden]){padding-bottom:10px}
+.top:has(.tabs[hidden]) ~ .grid .side{top:calc(env(safe-area-inset-top,0px) + 80px)}
+.tab{border:0;border-bottom:3px solid transparent;background:none;padding:6px 14px 8px;font-weight:700;color:var(--muted)}
+.tab[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
+
+button{font-family:var(--body);font-weight:600;font-size:14px;border:1px solid var(--rule);background:var(--panel);color:var(--fg);padding:7px 14px;cursor:pointer}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button.small{font-size:12px;padding:4px 10px}
+button:focus-visible,textarea:focus-visible,input:focus-visible,select:focus-visible,.thumb:focus-visible,.drop:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button:disabled{opacity:.4;cursor:default}
+
+.grid{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.side{display:grid;gap:12px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 112px)}
+@media (max-width:860px){.side{position:static}}
+.card{background:var(--panel);border:1px solid var(--rule);padding:14px;display:grid;gap:10px;min-width:0}
+label{font-size:12px;color:var(--muted);display:grid;gap:4px}
+textarea,input,select{font-family:var(--body);font-size:13px;background:var(--bg);color:var(--fg);border:1px solid var(--rule);padding:8px;width:100%;box-sizing:border-box}
+textarea{resize:vertical}
+#src{min-height:300px}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.check{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--fg)}
+.check input{width:auto}
+.hint{font-size:12px;color:var(--muted);margin:0}
+
+/* シナリオテキスト一覧 */
+.list{display:grid;gap:18px;min-width:0}
+.group{display:grid;gap:8px}
+.group h2{font-weight:700;font-size:14px;color:var(--muted);border-bottom:1px solid var(--rule);padding-bottom:4px;margin:0}
+.item{background:var(--panel);border:1px solid var(--rule);display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px 12px;padding:10px 12px;align-items:start}
+.item .idx{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;padding-top:6px;min-width:2.2em}
+.item .main{display:grid;gap:6px;min-width:0}
+.item .head{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.item input.title{width:auto;flex:0 1 180px;padding:4px 8px;font-weight:600}
+.len{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.item .body{white-space:pre-wrap;font-size:var(--text-size);line-height:1.8;margin:0;overflow-wrap:anywhere}
+.item.out{border-style:dashed;background:transparent} .item.out .body{text-decoration:line-through;color:var(--muted)}
+@media (max-width:560px){.item{grid-template-columns:minmax(0,1fr)}.item .idx{padding:0}}
+
+/* シーン */
+.drop{border:2px dashed var(--rule);padding:18px;text-align:center;color:var(--muted);font-size:13px;cursor:pointer}
+.drop.over{border-color:var(--accent);color:var(--fg)}
+.scenes{display:grid;gap:12px;min-width:0}
+.sc{background:var(--panel);border:1px solid var(--rule);padding:12px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px}
+.sc .no{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;display:grid;gap:4px;align-content:start;justify-items:center}
+.sc .no button{padding:2px 8px;font-size:12px}
+.sc .fields{display:grid;gap:10px;min-width:0}
+.sc .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sc input.name{flex:1 1 200px;width:auto;font-weight:600;font-size:14px}
+.slots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.slot{display:grid;gap:4px;font-size:12px;color:var(--muted)}
+.thumb{aspect-ratio:16/9;max-width:100%;border:1px dashed var(--rule);background:var(--bg) center/cover no-repeat;display:grid;place-items:center;font-size:12px;color:var(--muted);cursor:pointer;position:relative;text-align:center;padding:4px}
+.thumb.has{border-style:solid}
+.thumb.has span{display:none}
+.thumb.over{border-color:var(--accent)}
+.thumb .x{position:absolute;top:4px;right:4px;padding:0 7px;font-size:12px;line-height:1.6}
+.sc textarea{min-height:64px;font-size:var(--text-size)}
+.empty{color:var(--muted);font-size:13px;padding:24px;border:1px dashed var(--rule);text-align:center;margin:0}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 16px;font-size:13px;z-index:20;max-width:calc(100% - 32px)}
+.foot{max-width:1180px;margin:32px auto 0;font-size:12px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <div class="top">
+    <div class="top-row">
+      <h1><img class="logo" src="logo.png" alt="シナ分け" width="44" height="44"><small>ココフォリア部屋用便利ツール</small></h1>
+      <div class="view">
+        <label for="fontSel" style="display:contents">書体</label><select id="fontSel"><option value="system">端末の標準</option><option value="ud">UDゴシック</option></select>
+        <label for="sizeSel" style="display:contents">文字</label><select id="sizeSel"><option value="normal">標準</option><option value="large">大きめ</option></select>
+      </div>
+      <div class="save"><span class="count" id="count"></span><input id="zipName" aria-label="zipのファイル名" placeholder="ファイル名"><button class="primary" id="zipBtn">ココフォリア用zipを保存</button></div>
+    </div>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" id="tab-text" aria-controls="pane-text" aria-selected="true">シナリオテキスト</button>
+      <button class="tab" role="tab" id="tab-scene" aria-controls="pane-scene" aria-selected="false">シーン</button>
+    </div>
+  </div>
+
+  <section id="pane-text" role="tabpanel" aria-labelledby="tab-text" class="grid">
+    <aside class="side">
+      <div class="card">
+        <label for="src">シナリオ本文
+          <textarea id="src" spellcheck="false"></textarea>
+        </label>
+        <div class="opts">
+          <label for="maxLen">1件の最大文字数<input id="maxLen" type="number" min="80" max="3000" step="20" value="400"></label>
+          <label for="fixedName">テキストのタイトル<input id="fixedName" value="▼"></label>
+        </div>
+        <label class="check" for="allFixed"><input type="checkbox" id="allFixed">台詞も同じタイトルにする</label>
+        <p class="hint">空の行があるとその上を一つのシナリオテキストと見なします。<br>■や【】だけの行は見出しにカウントされます。<br>名前「台詞」の行はタイトルが名前になり、本文は台詞のみとなります。</p>
+      </div>
+    </aside>
+    <main class="list" id="list" aria-live="polite"></main>
+  </section>
+
+  <section id="pane-scene" role="tabpanel" aria-labelledby="tab-scene" class="grid" hidden>
+    <aside class="side">
+      <div class="card">
+        <div class="drop" id="bulkDrop" tabindex="0" role="button">画像をまとめてここに置くと、1枚につき1シーン作られます<br>(クリックでも選べます)</div>
+        <input type="file" id="bulkFile" accept="image/*" multiple hidden>
+        <label for="bulkTarget">画像の入れ先
+          <select id="bulkTarget"><option value="bg">背景</option><option value="fg">前景</option></select>
+        </label>
+        <button id="addScene">空のシーンを追加</button>
+        <p class="hint">シーン名は画像のファイル名になります。画像は各シーンの枠に置くと差し替えられます。</p>
+      </div>
+    </aside>
+    <main class="scenes" id="scenes"></main>
+  </section>
+</div>
+
+<footer class="foot">@DINAmadlover ココフォリア非公式ツール。ココフォリアの更新で読み込めなくなることがあります。入力したデータはこのブラウザの中だけで処理され、どこにも送信されません。</footer>
+<div class="toast" id="toast" hidden></div>
+<div class="toast" id="toast" hidden></div>
+<input type="file" id="slotFile" accept="image/*" hidden>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+// シナリオ本文 → ココフォリアのシナリオテキスト用の節に分ける(画面とは独立)
+// 見出しっぽい行 = 一覧の目印。「名前「台詞」」= 送信者名候補。
+const HEAD_RE = [
+  [/^#{1,4}\s*(.+)$/, '「#」で始まる行'],
+  [/^[■□◆◇●○▼▽★☆]\s*(.+)$/, '記号(■◆●▼★など)で始まる行'],
+  [/^【([^】]{1,30})】\s*$/, '【】だけの行'],
+  [/^(第[0-9０-９一二三四五六七八九十]+[章幕話節場]\s*.*)$/, '「第○章」などの行'],
+  [/^(シーン\s*[0-9０-９]+.*)$/, '「シーン1」などの行'],
+  [/^(導入|エンディング|クライマックス|プロローグ|エピローグ)(\s*[:：].*)?$/, '「導入」「エンディング」などの行'],
+];
+// 台詞の行: 「名前「…」」「名前：「…」」。名前は10文字まで。
+const SPEAKER_HEAD = /^([^\s「『（(、。:：]{1,10})\s*[:：]?\s*(?=[「『])/;
+function headingOf(line) {
+  const L = line.trim();
+  if (!L || L.length > 40) return null;
+  for (const [re, why] of HEAD_RE) { const m = L.match(re); if (m) return { name: (m[1] || L).trim(), why, line: L }; }
+  return null;
+}
+
+function splitScenario(text, opt = {}) {
+  const maxLen = opt.maxLen || 400;       // これより長い段落は文の切れ目で分ける
+  const lines = text.replace(/\r\n?/g, '\n').split('\n');
+  const scenes = []; let cur = null, buf = [];
+  const newScene = (name, why, line) => { cur = { name, why: why || '', line: line || '', items: [] }; scenes.push(cur); };
+  const flush = () => {
+    const body = buf.join('\n').trim(); buf = [];
+    if (!body) return;
+    if (!cur) newScene('▼', '最初の区切りより前の文');
+    for (const it of parseBlock(body, cur.name))
+      for (const piece of chop(it.body, maxLen)) cur.items.push({ ...it, body: piece, len: piece.length });
+  };
+  for (const line of lines) {
+    const h = headingOf(line);
+    if (h) { flush(); newScene(h.name, h.why, h.line); continue; }
+    if (!line.trim()) { flush(); continue; }
+    buf.push(line);
+  }
+  flush();
+  return scenes.filter(s => s.items.length || scenes.length === 1);
+}
+
+function chop(body, maxLen) {
+  if (body.length <= maxLen) return [body];
+  const out = []; let cur = '';
+  const sentences = body.match(/[^。！？!?\n]+[。！？!?」』]*\n?|\n/g) || [body];
+  for (const s of sentences) {
+    if (cur && (cur + s).length > maxLen) { out.push(cur.trim()); cur = ''; }
+    cur += s;
+  }
+  if (cur.trim()) out.push(cur.trim());
+  return out;
+}
+
+// 1かたまり(空行で区切られた範囲)を、シナリオテキストの単位にする。
+// 全部が台詞なら話者ごとに分けてタイトルを話者名に、地の文が混ざっていればそのまま1件。
+function parseBlock(body, groupName) {
+  const lines = body.split('\n');
+  const units = []; let open = null;
+  for (const line of lines) {
+    if (open) {
+      open.lines.push(line);
+      if (closes(line, open)) { if (!endsQuote(line)) return [{ kind: 'desc', title: groupName, body }]; open = null; }
+      continue;
+    }
+    const m = line.match(SPEAKER_HEAD);
+    if (!m) return [{ kind: 'desc', title: groupName, body }];
+    const rest = line.slice(m[0].length);
+    const u = { name: m[1], lines: [rest], depth: 0 };
+    units.push(u);
+    if (!closes(rest, u)) open = u;
+    else if (!endsQuote(rest)) return [{ kind: 'desc', title: groupName, body }];   // 「…」の後に地の文が続く行
+  }
+  if (open) return [{ kind: 'desc', title: groupName, body }];
+  const out = [];
+  for (const u of units) {
+    const last = out[out.length - 1];
+    if (last && last.title === u.name) last.body += '\n' + u.lines.join('\n');
+    else out.push({ kind: 'talk', title: u.name, body: u.lines.join('\n') });
+  }
+  return out;
+}
+const endsQuote = t => /[」』]\s*$/.test(t);
+// 括弧の開き閉じを数えて、台詞が閉じたかを見る
+function closes(text, u) {
+  for (const ch of text) { if (ch === '「' || ch === '『') u.depth++; else if (ch === '」' || ch === '』') u.depth--; }
+  return u.depth <= 0;
+}
+
+if (typeof module !== 'undefined') module.exports = { splitScenario, headingOf, chop, parseBlock };
+
+// ── ココフォリアのルームデータ(__data.json)を組み立てる ──
+// 実物のzipから読み取った形: {meta:{version}, entities:{room, items, decks, notes, characters, effects, scenes, savedatas, snapshots}, resources}
+// .token は "0." + __data.json の SHA-256
+function ccfId(rng = Math.random) {
+  const A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let s = ''; for (let i = 0; i < 20; i++) s += A[Math.floor(rng() * A.length)]; return s;
+}
+// 前景の大きさ(マス)。0/0だと後から前景を入れても映らないので、最初から入れておく。
+// 前景画像があれば横30マスで縦横比を合わせ、なければ30×20。
+function fieldSize(sc) {
+  const W = 30;
+  if (sc && sc.fgW && sc.fgH) return { fieldWidth: W, fieldHeight: Math.max(1, Math.round(W * sc.fgH / sc.fgW)) };
+  return { fieldWidth: W, fieldHeight: 20 };
+}
+function buildRoomData(entries, opt = {}) {
+  // entries: [{title, body}] を貼る順に
+  // opt.scenes: [{name, bg, fg, text}] (bg/fg は resources のファイル名 or null)
+  // opt.resources: {ファイル名: {type}}  画像のファイル名は「中身のSHA-256 + 拡張子」
+  const notes = {}, scenes = {};
+  entries.forEach((e, i) => { notes[ccfId(opt.rng)] = { name: e.title, text: e.body, iconUrl: '', order: i + 1 }; });
+  (opt.scenes || []).forEach((sc, i) => {
+    scenes[ccfId(opt.rng)] = { name: sc.name, backgroundUrl: sc.bg || null, foregroundUrl: sc.fg || null, fieldObjectFit: 'fill', ...fieldSize(sc),
+      displayGrid: false, gridSize: 1, markers: {}, text: sc.text || '', mediaRef: null, soundRef: null, locked: false, order: i + 1 };
+  });
+  const first = (opt.scenes || [])[0] || {};   // 読み込んだ直後の盤面に1枚目のシーンを出す
+  return {
+    meta: { version: '1.1.0' },
+    entities: {
+      room: { defaultAnonymousRole: null, backgroundUrl: first.bg || null, foregroundUrl: first.fg || null, embedUrl: null, thumbnailUrl: null, mapType: null,
+        ...(opt.scenes && opt.scenes.length ? fieldSize(first) : { fieldWidth: 0, fieldHeight: 0 }), fieldObjectFit: 'fill', alignWithGrid: true, messageChannels: [], messageGroups: [], markers: {},
+        mediaRef: null, monitored: false, soundRef: null, sceneId: null, archived: false, backgroundColor: '', variables: [],
+        underConstruction: false, hidden3dDice: true, initialSavedata: null, displayGrid: false, gridSize: 1, enableCrossfade: false, crossfadeDuration: 1 },
+      items: {}, decks: {}, notes, characters: {}, effects: {}, scenes, savedatas: {}, snapshots: {}
+    },
+    resources: opt.resources || {}
+  };
+}
+if (typeof module !== 'undefined') Object.assign(module.exports, { buildRoomData, ccfId, fieldSize });
+
+</script>
+<script>
+const $ = id => document.getElementById(id);
+const ENABLE_SCENES = false;   // シーン機能(画像つき)は検証中のため非表示。trueで復活
+const SAMPLE = `■導入
+探索者たちは古書店「灯台堂」の店主から一通の手紙を受け取る。差出人は三日前に失踪した常連客、早瀬透である。
+
+早瀬「もしこれを読んでいるなら、僕はもう店に戻れていないはずです」
+
+手紙には地下書庫の鍵が同封されている。
+
+■地下書庫
+階段を降りると、湿った紙の匂いが鼻をつく。書架は天井まで続き、奥の一角だけがぼんやりと明るい。
+
+《目星》に成功すると、床に引きずったような跡を見つける。
+
+【閲覧台】
+台の上には開かれたままの本がある。頁は濡れていないのに、指で触れると冷たい。
+読んだ探索者は SANチェック 0/1d3。`;
+
+const store = {
+  get(k, d){ try { const v = localStorage.getItem('shinawake:' + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v){ try { localStorage.setItem('shinawake:' + k, JSON.stringify(v)); } catch {} }
+};
+
+// 画像はIndexedDBに(使えなければメモリだけ)
+const imgDB = (() => {
+  const mem = new Map(); let dbp;
+  try {
+    dbp = new Promise((res, rej) => { const r = indexedDB.open('shinawake', 1); r.onupgradeneeded = () => r.result.createObjectStore('img'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }).catch(() => null);
+  } catch { dbp = Promise.resolve(null); }
+  const tx = async (mode, fn) => { const db = await dbp; if (!db) return null; return new Promise(res => { try { const t = db.transaction('img', mode); const q = fn(t.objectStore('img')); t.oncomplete = () => res(q && q.result); t.onerror = () => res(null); } catch { res(null); } }); };
+  return {
+    async put(k, blob){ mem.set(k, blob); await tx('readwrite', s => s.put(blob, k)); },
+    async get(k){ if (mem.has(k)) return mem.get(k); const b = await tx('readonly', s => s.get(k)); if (b) mem.set(k, b); return b || null; }
+  };
+})();
+
+let tt;
+function toast(m){ const t = $('toast'); t.textContent = m; t.hidden = false; clearTimeout(tt); tt = setTimeout(() => t.hidden = true, 2200); }
+const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+const attr = s => esc(s).replace(/"/g, '&quot;');
+
+/* ── シナリオテキスト ── */
+let flat = [];
+let out = new Set(store.get('out', []));
+let titles = store.get('titles', {});
+const keyOf = it => it.key;
+
+function build(){
+  const groups = splitScenario($('src').value, { maxLen: +$('maxLen').value || 400 });
+  const fixed = $('fixedName').value || '▼', allFixed = $('allFixed').checked;
+  flat = [];
+  groups.forEach((g, gi) => g.items.forEach(it => {
+    const t = (it.kind === 'talk' && !allFixed) ? it.title : fixed;
+    flat.push({ ...it, group: g.name, gi, title: t });
+  }));
+  const seen = {};   // 同じ見出しの下に同じ文が複数あっても別物として扱う
+  flat.forEach(it => { const base = it.group + '|' + it.body.slice(0, 60); seen[base] = (seen[base] || 0) + 1; it.key = base + '|' + seen[base]; });
+  flat.forEach(it => { const k = keyOf(it); if (titles[k]) it.title = titles[k]; });
+  renderText();
+  store.set('src', $('src').value);
+}
+const visible = () => flat;
+const working = () => visible().filter(it => !out.has(keyOf(it)));
+
+function renderText(){
+  const vis = visible(); let n = 0, html = '', lastGi = -1;
+  vis.forEach(it => {
+    if (it.gi !== lastGi) { if (lastGi >= 0) html += '</section>'; html += `<section class="group"><h2>${esc(it.group)}</h2>`; lastGi = it.gi; }
+    const k = keyOf(it), isOut = out.has(k);
+    if (!isOut) n++;
+    html += `<article class="item ${isOut ? 'out' : ''}" data-k="${attr(k)}">
+      <span class="idx">${isOut ? '–' : n}</span>
+      <div class="main">
+        <div class="head"><input class="title" value="${attr(it.title)}" aria-label="タイトル" data-k="${attr(k)}"><span class="len">${it.len}字</span></div>
+        <p class="body">${esc(it.body)}</p>
+      </div>
+      <div><button class="small" data-act="out">${isOut ? 'zipに戻す' : 'zipに入れない'}</button></div>
+    </article>`;
+  });
+  if (lastGi >= 0) html += '</section>';
+  $('list').innerHTML = html || '<p class="empty">左に本文を貼ると、ここにシナリオテキストが並びます。</p>';
+  updateCount();
+}
+
+$('list').addEventListener('click', e => {
+  const b = e.target.closest('button[data-act="out"]'); if (!b) return;
+  const k = b.closest('.item').dataset.k;
+  out.has(k) ? out.delete(k) : out.add(k); store.set('out', [...out]); renderText();
+});
+$('list').addEventListener('input', e => {
+  if (!e.target.classList.contains('title')) return;
+  const k = e.target.dataset.k; titles[k] = e.target.value; store.set('titles', titles);
+  const it = flat.find(x => keyOf(x) === k); if (it) it.title = e.target.value;
+});
+let deb; $('src').addEventListener('input', () => { clearTimeout(deb); deb = setTimeout(build, 400); });
+$('maxLen').onchange = build;
+$('fixedName').oninput = () => { titles = {}; store.set('titles', {}); build(); };
+$('allFixed').onchange = () => { titles = {}; store.set('titles', {}); build(); };
+
+/* ── シーン ── */
+// scene: {id, name, bg, fg, text}  bg/fg は imgDB のキー
+let scenes = store.get('scenes', []);
+const uid = () => Math.random().toString(36).slice(2, 10);
+const saveScenes = () => { store.set('scenes', scenes); updateCount(); };
+const urls = new Map();
+async function urlFor(k){ if (!k) return null; if (urls.has(k)) return urls.get(k); const b = await imgDB.get(k); if (!b) return null; const u = URL.createObjectURL(b); urls.set(k, u); return u; }
+
+async function renderScenes(){
+  const box = $('scenes');
+  if (!scenes.length) { box.innerHTML = '<p class="empty">左に画像を置くか、「空のシーンを追加」を押すとシーンが並びます。</p>'; updateCount(); return; }
+  box.innerHTML = scenes.map((s, i) => `
+    <article class="sc" data-id="${s.id}">
+      <div class="no"><span>${i + 1}</span><button data-act="up" aria-label="上へ" ${i ? '' : 'disabled'}>↑</button><button data-act="down" aria-label="下へ" ${i < scenes.length - 1 ? '' : 'disabled'}>↓</button></div>
+      <div class="fields">
+        <div class="row"><input class="name" value="${attr(s.name)}" aria-label="シーン名"><button class="small" data-act="del">削除</button></div>
+        <div class="slots">
+          <div class="slot">背景<div class="thumb" data-slot="bg" tabindex="0" role="button" aria-label="背景画像"><span>画像を置く</span></div></div>
+          <div class="slot">前景<div class="thumb" data-slot="fg" tabindex="0" role="button" aria-label="前景画像"><span>画像を置く</span></div></div>
+        </div>
+        <label>シーンテキスト<textarea class="stext" rows="2">${esc(s.text || '')}</textarea></label>
+      </div>
+    </article>`).join('');
+  for (const s of scenes) for (const slot of ['bg', 'fg']) {
+    const el = box.querySelector(`.sc[data-id="${s.id}"] .thumb[data-slot="${slot}"]`);
+    const u = await urlFor(s[slot]);
+    if (el && u) { el.classList.add('has'); el.style.backgroundImage = `url("${u}")`; el.insertAdjacentHTML('beforeend', '<button class="x" data-act="clear" aria-label="画像を外す">×</button>'); }
+  }
+  updateCount();
+}
+
+async function storeImage(file){ const k = 'img_' + uid(); await imgDB.put(k, file); return k; }
+const sceneOf = el => scenes.find(s => s.id === el.closest('.sc').dataset.id);
+const baseName = f => f.name.replace(/\.[^.]+$/, '');
+
+let pending = null;
+$('scenes').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (b && b.dataset.act) {
+    e.stopPropagation();
+    const s = sceneOf(b), i = scenes.indexOf(s);
+    if (b.dataset.act === 'del') scenes.splice(i, 1);
+    if (b.dataset.act === 'up' && i > 0) [scenes[i - 1], scenes[i]] = [scenes[i], scenes[i - 1]];
+    if (b.dataset.act === 'down' && i < scenes.length - 1) [scenes[i + 1], scenes[i]] = [scenes[i], scenes[i + 1]];
+    if (b.dataset.act === 'clear') s[b.closest('.thumb').dataset.slot] = null;
+    saveScenes(); renderScenes(); return;
+  }
+  const th = e.target.closest('.thumb');
+  if (th) { pending = { s: sceneOf(th), slot: th.dataset.slot }; $('slotFile').click(); }
+});
+$('scenes').addEventListener('keydown', e => { const th = e.target.closest('.thumb'); if (th && e.target === th && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); th.click(); } });
+$('scenes').addEventListener('input', e => {
+  const s = sceneOf(e.target);
+  if (e.target.classList.contains('name')) s.name = e.target.value;
+  if (e.target.classList.contains('stext')) s.text = e.target.value;
+  saveScenes();
+});
+$('slotFile').onchange = async () => {
+  const f = $('slotFile').files[0]; $('slotFile').value = '';
+  if (!f || !pending) return;
+  pending.s[pending.slot] = await storeImage(f); pending = null; saveScenes(); renderScenes();
+};
+$('scenes').addEventListener('dragover', e => { const th = e.target.closest('.thumb'); if (th) { e.preventDefault(); th.classList.add('over'); } });
+$('scenes').addEventListener('dragleave', e => { const th = e.target.closest('.thumb'); if (th) th.classList.remove('over'); });
+$('scenes').addEventListener('drop', async e => {
+  const th = e.target.closest('.thumb'); if (!th) return;
+  e.preventDefault(); th.classList.remove('over');
+  const f = [...e.dataTransfer.files].find(f => f.type.startsWith('image/')); if (!f) return;
+  sceneOf(th)[th.dataset.slot] = await storeImage(f); saveScenes(); renderScenes();
+});
+
+async function addBulk(files){
+  const imgs = [...files].filter(f => f.type.startsWith('image/')).sort((a, b) => a.name.localeCompare(b.name, 'ja', { numeric: true }));
+  if (!imgs.length) { toast('画像が見つかりませんでした'); return; }
+  const slot = $('bulkTarget').value;
+  for (const f of imgs) { const k = await storeImage(f); scenes.push({ id: uid(), name: baseName(f), bg: slot === 'bg' ? k : null, fg: slot === 'fg' ? k : null, text: '' }); }
+  saveScenes(); renderScenes(); toast(`${imgs.length}シーンを追加しました`);
+}
+const bd = $('bulkDrop');
+bd.onclick = () => $('bulkFile').click();
+bd.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('bulkFile').click(); } };
+$('bulkFile').onchange = () => { addBulk($('bulkFile').files); $('bulkFile').value = ''; };
+bd.ondragover = e => { e.preventDefault(); bd.classList.add('over'); };
+bd.ondragleave = () => bd.classList.remove('over');
+bd.ondrop = e => { e.preventDefault(); bd.classList.remove('over'); addBulk(e.dataTransfer.files); };
+$('addScene').onclick = () => { scenes.push({ id: uid(), name: `シーン${scenes.length + 1}`, bg: null, fg: null, text: '' }); saveScenes(); renderScenes(); };
+
+/* ── タブ・表示 ── */
+function showTab(name){
+  for (const t of ['text', 'scene']) { $('tab-' + t).setAttribute('aria-selected', String(t === name)); $('pane-' + t).hidden = t !== name; }
+  store.set('tab', name);
+}
+$('tab-text').onclick = () => showTab('text');
+$('tab-scene').onclick = () => showTab('scene');
+function updateCount(){ $('count').textContent = ENABLE_SCENES ? `テキスト ${working().length} ・ シーン ${scenes.length}` : `シナリオテキスト ${working().length}件`; }
+function applyView(){
+  document.documentElement.dataset.font = $('fontSel').value;
+  document.documentElement.dataset.size = $('sizeSel').value;
+  store.set('font', $('fontSel').value); store.set('size', $('sizeSel').value);
+}
+$('fontSel').value = store.get('font', 'system'); if (!$('fontSel').value) $('fontSel').value = 'system';
+$('sizeSel').value = store.get('size', 'normal');
+$('fontSel').onchange = applyView; $('sizeSel').onchange = applyView; applyView();
+
+/* ── zip ── */
+async function sha256hex(data){
+  const buf = await crypto.subtle.digest('SHA-256', typeof data === 'string' ? new TextEncoder().encode(data) : data);
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+async function toPng(blob){
+  const bmp = await createImageBitmap(blob);
+  const c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+  c.getContext('2d').drawImage(bmp, 0, 0);
+  return await new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error('画像をPNGに変換できませんでした')), 'image/png'));
+}
+$('zipBtn').onclick = async () => {
+  const items = working();
+  if (!items.length && !(ENABLE_SCENES && scenes.length)) { toast('本文を貼るか、シーンを作ってから保存してください'); return; }
+  try {
+    const zip = new JSZip(), resources = {}, named = new Map();
+    const dims = new Map();
+    async function fileName(k){
+      if (!k) return null; if (named.has(k)) return named.get(k);
+      const b = await imgDB.get(k); if (!b) return null;
+      try { const bmp = await createImageBitmap(b); dims.set(k, [bmp.width, bmp.height]); } catch {}
+      // ココフォリアで確認できた形: PNGは「.png」、JPEGは「.jpeg」(「.jpg」だと壊れる)。それ以外はPNGに変換する
+      const keep = { 'image/png': 'png', 'image/jpeg': 'jpeg' };
+      const img = keep[b.type] ? b : await toPng(b), type = keep[b.type] ? b.type : 'image/png';
+      const buf = await img.arrayBuffer();
+      const name = (await sha256hex(buf)) + '.' + keep[type];
+      if (!resources[name]) { resources[name] = { type }; zip.file(name, buf); }
+      named.set(k, name); return name;
+    }
+    const sc = [];
+    for (const s of (ENABLE_SCENES ? scenes : [])) {
+      const fg = await fileName(s.fg), d = dims.get(s.fg) || [];
+      sc.push({ name: s.name || '新しいシーン', bg: await fileName(s.bg), fg, fgW: d[0], fgH: d[1], text: s.text || '' });
+    }
+    const json = JSON.stringify(buildRoomData(items.map(it => ({ title: it.title, body: it.body })), { scenes: sc, resources }));
+    zip.file('__data.json', json);
+    zip.file('.token', '0.' + await sha256hex(json));
+    const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+    const name = ($('zipName').value.replace(/[\\/:*?"<>|]/g, '').trim() || 'shinawake_ccfolia') + '.zip';   // 空欄なら既定の名前
+    const dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null;
+    if (dl) await dl.save({ filename: name, data: blob });
+    else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }
+    toast(ENABLE_SCENES ? `テキスト${items.length}件・シーン${sc.length}件のzipを保存しました` : `シナリオテキスト${items.length}件のzipを保存しました`);
+  } catch (e) {
+    toast(e && e.code === 'declined' ? '保存をキャンセルしました' : 'zipを作れませんでした: ' + (e && (e.message || e.code) || e));
+  }
+};
+
+$('zipName').value = store.get('zipName', '');
+$('zipName').oninput = () => store.set('zipName', $('zipName').value);
+$('src').value = store.get('src', SAMPLE) || SAMPLE;
+build();
+if (ENABLE_SCENES) { renderScenes(); showTab(store.get('tab', 'text')); }
+else { document.querySelector('.tabs').hidden = true; $('pane-scene').remove(); }
+</script>
+
+</body>
+</html>
