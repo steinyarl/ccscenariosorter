@@ -16,63 +16,61 @@
   --bg:#f2f0ee; --panel:#fbfaf9; --fg:#231e1b; --muted:#6b625c; --rule:#dcd6d1;
   --accent:#4a3226; --accent-ink:#fbfaf9;
   --body:system-ui,"Hiragino Sans","Yu Gothic UI","Meiryo",sans-serif;
-  --text-size:15px;
+  --text-size:16px;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1a1716;--panel:#221e1c;--fg:#ebe6e2;--muted:#a59b94;--rule:#3a3330;--accent:#c4a690;--accent-ink:#1a1716;color-scheme:dark}}
 :root[data-theme="dark"]{--bg:#1a1716;--panel:#221e1c;--fg:#ebe6e2;--muted:#a59b94;--rule:#3a3330;--accent:#c4a690;--accent-ink:#1a1716;color-scheme:dark}
 :root[data-font="ud"]{--body:"BIZ UDPGothic","Hiragino Sans","Yu Gothic",sans-serif}
-:root[data-size="large"]{--text-size:17px}
+:root[data-size="large"]{--text-size:18px}
 
-body{background:var(--bg);color:var(--fg);font-family:var(--body);line-height:1.7;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.7;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--panel)}
 .wrap{max-width:1180px;margin:0 auto;display:grid;gap:16px}
 
-.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--panel);border-bottom:1px solid var(--rule);margin:0 calc(-1 * max(16px,env(safe-area-inset-left,0px)));padding:10px max(16px,env(safe-area-inset-left,0px)) 0;display:grid;gap:8px}
+.top{position:relative;z-index:5;background:var(--panel);border-bottom:1px solid var(--rule);margin:0 calc(-1 * max(16px,env(safe-area-inset-left,0px)));padding:10px max(16px,env(safe-area-inset-left,0px)) 0;display:grid;gap:8px}
 .top-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px}
 h1{font-weight:700;font-size:21px;margin:0;display:flex;align-items:center;gap:10px}
 .logo{display:block;width:44px;height:44px;flex:none}
-h1 small{font-size:13px;font-weight:700;color:var(--muted)}
-.view{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted)}
+h1 small{font-size:15px;font-weight:700;color:var(--muted)}
+.view{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
 .view select{width:auto;padding:4px 6px}
-.save{margin-left:auto;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
-#zipName{width:15em;padding:6px 8px}
-.count{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.save{display:grid;gap:8px;padding-top:12px;border-top:1px solid var(--rule)}
+.save button{width:100%;padding:10px 14px}
 .tabs{display:flex;gap:4px}
 .top:has(.tabs[hidden]){padding-bottom:10px}
-.top:has(.tabs[hidden]) ~ .grid .side{top:calc(env(safe-area-inset-top,0px) + 80px)}
 .tab{border:0;border-bottom:3px solid transparent;background:none;padding:6px 14px 8px;font-weight:700;color:var(--muted)}
 .tab[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
 
-button{font-family:var(--body);font-weight:600;font-size:14px;border:1px solid var(--rule);background:var(--panel);color:var(--fg);padding:7px 14px;cursor:pointer}
+button{font-family:var(--body);font-weight:600;font-size:15px;border:1px solid var(--rule);background:var(--panel);color:var(--fg);padding:7px 14px;cursor:pointer}
 button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-button.small{font-size:12px;padding:4px 10px}
+button.small{font-size:13px;padding:5px 10px}
 button:focus-visible,textarea:focus-visible,input:focus-visible,select:focus-visible,.thumb:focus-visible,.drop:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 button:disabled{opacity:.4;cursor:default}
 
 .grid{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr);gap:16px;align-items:start}
 @media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
-.side{display:grid;gap:12px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 112px)}
+.side{display:grid;gap:12px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px)}
 @media (max-width:860px){.side{position:static}}
 .card{background:var(--panel);border:1px solid var(--rule);padding:14px;display:grid;gap:10px;min-width:0}
-label{font-size:12px;color:var(--muted);display:grid;gap:4px}
-textarea,input,select{font-family:var(--body);font-size:13px;background:var(--bg);color:var(--fg);border:1px solid var(--rule);padding:8px;width:100%;box-sizing:border-box}
+label{font-size:13px;color:var(--muted);display:grid;gap:4px}
+textarea,input,select{font-family:var(--body);font-size:14px;background:var(--bg);color:var(--fg);border:1px solid var(--rule);padding:8px;width:100%;box-sizing:border-box}
 textarea{resize:vertical}
 #src{min-height:300px}
 .opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.check{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--fg)}
+.check{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--fg)}
 .check input{width:auto}
-.hint{font-size:12px;color:var(--muted);margin:0}
+.hint{font-size:13px;color:var(--muted);margin:0}
 
 /* シナリオテキスト一覧 */
 .list{display:grid;gap:18px;min-width:0}
 .group{display:grid;gap:8px}
-.group h2{font-weight:700;font-size:14px;color:var(--muted);border-bottom:1px solid var(--rule);padding-bottom:4px;margin:0}
+.group h2{font-weight:700;font-size:15px;color:var(--muted);border-bottom:1px solid var(--rule);padding-bottom:4px;margin:0}
 .item{background:var(--panel);border:1px solid var(--rule);display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px 12px;padding:10px 12px;align-items:start}
-.item .idx{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;padding-top:6px;min-width:2.2em}
+.item .idx{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;padding-top:6px;min-width:2.2em}
 .item .main{display:grid;gap:6px;min-width:0}
 .item .head{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .item input.title{width:auto;flex:0 1 180px;padding:4px 8px;font-weight:600}
-.len{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.len{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 .item .body{white-space:pre-wrap;font-size:var(--text-size);line-height:1.8;margin:0;overflow-wrap:anywhere}
 .item.out{border-style:dashed;background:transparent} .item.out .body{text-decoration:line-through;color:var(--muted)}
 @media (max-width:560px){.item{grid-template-columns:minmax(0,1fr)}.item .idx{padding:0}}
@@ -98,7 +96,7 @@ textarea{resize:vertical}
 .empty{color:var(--muted);font-size:13px;padding:24px;border:1px dashed var(--rule);text-align:center;margin:0}
 
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 16px;font-size:13px;z-index:20;max-width:calc(100% - 32px)}
-.foot{max-width:1180px;margin:32px auto 0;font-size:12px;color:var(--muted)}
+.foot{max-width:1180px;margin:32px auto 0;font-size:13px;color:var(--muted)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -110,7 +108,6 @@ textarea{resize:vertical}
         <label for="fontSel" style="display:contents">書体</label><select id="fontSel"><option value="system">端末の標準</option><option value="ud">UDゴシック</option></select>
         <label for="sizeSel" style="display:contents">文字</label><select id="sizeSel"><option value="normal">標準</option><option value="large">大きめ</option></select>
       </div>
-      <div class="save"><span class="count" id="count"></span><input id="zipName" aria-label="zipのファイル名" placeholder="ファイル名"><button class="primary" id="zipBtn">ココフォリア用zipを保存</button></div>
     </div>
     <div class="tabs" role="tablist">
       <button class="tab" role="tab" id="tab-text" aria-controls="pane-text" aria-selected="true">シナリオテキスト</button>
@@ -129,6 +126,10 @@ textarea{resize:vertical}
           <label for="fixedName">テキストのタイトル<input id="fixedName" value="▼"></label>
         </div>
         <label class="check" for="allFixed"><input type="checkbox" id="allFixed">台詞も同じタイトルにする</label>
+        <div class="save">
+          <label for="zipName">ファイル名<input id="zipName" placeholder="shinawake_ccfolia"></label>
+          <button class="primary" id="zipBtn">ココフォリア用zipを保存</button>
+        </div>
         <p class="hint">空の行があるとその上を一つのシナリオテキストと見なします。<br>■や【】だけの行は見出しにカウントされます。<br>名前「台詞」の行はタイトルが名前になります。</p>
       </div>
     </aside>
@@ -152,7 +153,6 @@ textarea{resize:vertical}
 </div>
 
 <footer class="foot">@DINAmadlover ココフォリア非公式ツール。ココフォリアの更新で読み込めなくなることがあります。入力したデータはこのブラウザの中だけで処理され、どこにも送信されません。</footer>
-<div class="toast" id="toast" hidden></div>
 <div class="toast" id="toast" hidden></div>
 <input type="file" id="slotFile" accept="image/*" hidden>
 
@@ -482,7 +482,7 @@ function showTab(name){
 }
 $('tab-text').onclick = () => showTab('text');
 $('tab-scene').onclick = () => showTab('scene');
-function updateCount(){ $('count').textContent = ENABLE_SCENES ? `テキスト ${working().length} ・ シーン ${scenes.length}` : `シナリオテキスト ${working().length}件`; }
+function updateCount(){}   // 件数表示はなくした(呼び出し元が多いので空のまま残す)
 function applyView(){
   document.documentElement.dataset.font = $('fontSel').value;
   document.documentElement.dataset.size = $('sizeSel').value;
